@@ -8,11 +8,11 @@ const port = 8000;
 app.get("/api/users", (req, res) => {
    return res.json(users);
 });
-app.get('/users',(req,res)=>{
-   const html=
-   `
+app.get('/users', (req, res) => {
+   const html =
+      `
    <ul> 
-   ${users.map((users)=> `<li>${users.first_name} </li>` ).join("")}
+   ${users.map((users) => `<li>${users.first_name} </li>`).join("")}
 
    </ul>
    `
@@ -23,20 +23,21 @@ app.route('/api/users/:id').get((req, res) => {
    const id = Number(req.params.id);
    const user = users.find((user) => user.id === id);
    return res.json(user);
-}).patch((req,res)=>{ 
+}).patch((req, res) => {
    //edit user with id
-  return res.json({status:"pending"})
-}).delete((req,res) => { 
+   return res.json({ status: "pending" })
+}).delete((req, res) => {
    //delete user with id 
-   return res.json({ status: "pending" }) })
-   
- 
+   return res.json({ status: "pending" })
+})
+
+
 //:id means ye kuch bhi ho skta ha
 
 
-app.post('/api/users',(req,res)=>{
+app.post('/api/users', (req, res) => {
    //TODO-Create a new user
-   return res.json({status:"pending"});
+   return res.json({ status: "pending" });
 })
 
 
