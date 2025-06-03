@@ -1,0 +1,9 @@
+GET /users = List all the users
+
+GET /users - HTML DOCUMENT RENDER
+GET /api/users/1 = Get the user with id 1
+GET /api//users/2 = Get the user with id 1
+
+POST /api/users = Create new users
+PATCH /api/1 = Edit the user with ID 1
+DELETE /api/user/1 =Delete the user with ID 1 
