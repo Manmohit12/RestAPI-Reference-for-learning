@@ -1,107 +1,166 @@
 import express from 'express';
-import users from './MOCK_DATA.json' with { type: 'json' };
-import fs, { appendFile } from "fs";
+import fs from "fs";
+import mongoose from "mongoose";
 
 const app = express();
 const port = 8000;
-
-// Middleware
-//jo bhi frontend se values a rahi ha (form data) usko object me convert karta ha 
 app.use(express.urlencoded({ extended: false }));
-app.use(express.json()); // Also include this to parse JSON body (important!)
+app.use(express.json());
 
+// MongoDB Connection
+mongoose.connect('mongodb://127.0.0.1:27017/apnaApp-1')
+   .then(() => console.log('MongoDB Connected!'))
+   .catch(err => console.log("MongoDB error - ", err));
 
-app.use((req,res,next)=>{
-fs.appendFile('log.txt', `\n ${Date.now()} : ${req.method} : ${req.path} `,(err,data)=>{
-next();
+// Schema
+const userSchema = new mongoose.Schema({
+   first_name: {
+      type: String,
+      required: true,
+   },
+   last_name: {
+      type: String,
+   },
+   email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,  // Ensures consistent casing
+      trim: true       // Automatically trims whitespace
+    },
+   job_title: {
+      type: String,
+   },
+   gender: {
+      type: String,
+   },
+},
+   { timestamps: true }
+);
 
+// Model
+const User = mongoose.model('User', userSchema);
+
+// Logging Middleware
+app.use((req, res, next) => {
+   fs.appendFile('log.txt', `\n${Date.now()}: ${req.method} ${req.path}`, (err) => {
+      if (err) console.error("Logging error:", err);
+      next();
+   });
 });
+
+// Routes
+
+// POST Route
+app.post('/api/users', async (req, res) => {
+   if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({ msg: "Request body is empty" });
+   }
+
+   // Extract and normalize fields
+   const {
+      first_name,
+      email,
+      last_name,
+      gender,
+      job_title,
+      Job_title  // Handle case variation
+   } = req.body;
+
+   // Normalize email to lowercase
+   const normalizedEmail = email?.toLowerCase().trim();
+
+   if (!first_name || !normalizedEmail) {
+      return res.status(400).json({ msg: "First name and email are required" });
+   }
+
+   try {
+      const result = await User.create({
+         first_name: first_name.trim(),
+         last_name: last_name?.trim() || '',
+         email: normalizedEmail,  // Use normalized email
+         gender: gender?.trim() || '',
+         job_title: (job_title || Job_title)?.trim() || ''
+      });
+
+      return res.status(201).json({ msg: "Success", id: result._id });
+   } catch (error) {
+      console.error("User creation error:", error);
+
+      if (error.code === 11000) {
+         // More specific error message
+         return res.status(400).json({
+            msg: `Email '${normalizedEmail}' already exists`
+         });
+      }
+
+      // Handle validation errors
+      if (error.name === 'ValidationError') {
+         return res.status(400).json({
+            msg: Object.values(error.errors).map(e => e.message).join(', ')
+         });
+      }
+
+      return res.status(500).json({ msg: "Database insertion failed" });
+   }
 });
 
-
-app.get('/users', (req, res) => {
-   const html = `
-   <ul> 
-   ${users.map((user) => `<li>${user.first_name}</li>`).join("")}
-   </ul>
-   `;
-   res.send(html);
+app.get('/users', async (req, res) => {
+   try {
+      const allUsers = await User.find({});
+      const html = `
+         <ul>
+            ${allUsers.map(user => `<li>${user.first_name}</li>`).join("")}
+         </ul>
+      `;
+      res.send(html);
+   } catch (error) {
+      res.status(500).send("Error loading users");
+   }
 });
 
-app.get('/api/users', (req, res) => {
-   res.json(users); // Sends all users as JSON
+app.get('/api/users', async (req, res) => {
+   try {
+      const allUsers = await User.find({});
+      res.json(allUsers);
+   } catch (error) {
+      res.status(500).json({ msg: "Failed to fetch users" });
+   }
 });
 
 app.route('/api/users/:id')
-   .get((req, res) => {
-      const id = Number(req.params.id);
-      const user = users.find((user) => user.id === id);
-      if(!user) return res.status(404).json({msg:'User not found'})
-      return res.json(user);
-   })
-   .patch((req, res) => {
-      const userId = parseInt(req.params.id);
-      const index = users.findIndex(user => user.id === userId);
-
-      if (index === -1) {
-         return res.status(404).json({ status: "User not found" });
+   .get(async (req, res) => {
+      try {
+         const user = await User.findById(req.params.id);
+         if (!user) return res.status(404).json({ msg: 'User not found' });
+         res.json(user);
+      } catch (error) {
+         res.status(500).json({ msg: "Server error" });
       }
-
-      // Get updated data from the request body
-      const updatedData = req.body;
-
-      // Merge existing user data with new data
-      users[index] = { ...users[index], ...updatedData };
-
-    
-      //users → This is your updated user list (array of users).
-      //null → Means: "Include everything when converting to JSON."
-      //2 → Means: "Make the JSON file look nice with 2 spaces of indentation."
-      fs.writeFile('./MOCK_DATA.json', JSON.stringify(users, null, 2), (err) => {
-         if (err) {
-            return res.status(500).json({ status: "Error writing to file" });
-         }
-
-      });
-      return res.json({ status: "Success","Updated user":userId});
    })
-   
-   .delete((req, res) => {
-      const userId = parseInt(req.params.id);
-      const index = users.findIndex(user => user.id === userId);
-
-      if (index === -1) {
-         return res.status(404).json({ status: "User not found" });
+   .patch(async (req, res) => {
+      try {
+         const updatedUser = await User.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true }
+         );
+         if (!updatedUser) return res.status(404).json({ msg: 'User not found' });
+         res.json({ status: "Success", updatedUser });
+      } catch (error) {
+         res.status(500).json({ msg: "Update failed" });
       }
-
-      // Remove user
-      //users.splice(position,how many want to remove)
-      users.splice(index, 1);
-
-      // Write updated array to file
-      //JSON.stringify(value,replace,space)
-      fs.writeFile('./MOCK_DATA.json', JSON.stringify(users, null, 2), err => {
-         if (err) {
-            return res.status(500).json({ status: "Error writing to file" });
-         }
-
-         return res.json({ status: "Success", deletedId: userId });
-      });
+   })
+   .delete(async (req, res) => {
+      try {
+         const deletedUser = await User.findByIdAndDelete(req.params.id);
+         if (!deletedUser) return res.status(404).json({ msg: 'User not found' });
+         res.json({ status: "Success", deletedId: req.params.id });
+      } catch (error) {
+         res.status(500).json({ msg: "Deletion failed" });
+      }
    });
 
-app.post('/api/users', (req, res) => {
-   const body = req.body;
-   if(!body || !body.first_name || !body.last_name || !body.email || !body.gender || !body.job_title){
-      return res.status(400).json({msg:"All fields are required"})
-   }
-   users.push({ ...body, id: users.length + 1 });
-   fs.writeFile('./MOCK_DATA.json', JSON.stringify(users, null, 2), (err) => {
-      if (err) {
-         return res.status(500).json({ status: "Error writing to file" });
-      }
-      return res.status(201).json({ status: "Success", id: users.length });
-   });
-});
 
 app.listen(port, () => {
    console.log(`Server is running on port ${port}`);
