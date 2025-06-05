@@ -95,7 +95,7 @@ app.post('/api/users', (req, res) => {
       if (err) {
          return res.status(500).json({ status: "Error writing to file" });
       }
-      return res.json({ status: "Success", id: users.length });
+      return res.status(201).json({ status: "Success", id: users.length });
    });
 });
 
