@@ -7,3 +7,5 @@
  1749043463078 : POST : /api/users/1001 
  1749043501352 : PATCH : /api/users/1001 
  
+ 1749110194727 : GET : /api/users/1001 
+ 1749110201711 : GET : /api/users/10013 
