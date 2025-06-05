@@ -1,17 +1,23 @@
 import express from 'express';
 import users from './MOCK_DATA.json' with { type: 'json' };
-import fs from "fs";
+import fs, { appendFile } from "fs";
 
 const app = express();
 const port = 8000;
 
 // Middleware
+//jo bhi frontend se values a rahi ha (form data) usko object me convert karta ha 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json()); // Also include this to parse JSON body (important!)
 
-app.get("/api/users", (req, res) => {
-   return res.json(users);
+
+app.use((req,res,next)=>{
+fs.appendFile('log.txt', `\n ${Date.now()} : ${req.method} : ${req.path} `,(err,data)=>{
+next();
+
 });
+});
+
 
 app.get('/users', (req, res) => {
    const html = `
@@ -20,6 +26,10 @@ app.get('/users', (req, res) => {
    </ul>
    `;
    res.send(html);
+});
+
+app.get('/api/users', (req, res) => {
+   res.json(users); // Sends all users as JSON
 });
 
 app.route('/api/users/:id')
@@ -42,10 +52,10 @@ app.route('/api/users/:id')
       // Merge existing user data with new data
       users[index] = { ...users[index], ...updatedData };
 
-      // Save updated users array back to file
+    
       //users → This is your updated user list (array of users).
-//null → Means: "Include everything when converting to JSON."
-//2 → Means: "Make the JSON file look nice with 2 spaces of indentation."
+      //null → Means: "Include everything when converting to JSON."
+      //2 → Means: "Make the JSON file look nice with 2 spaces of indentation."
       fs.writeFile('./MOCK_DATA.json', JSON.stringify(users, null, 2), (err) => {
          if (err) {
             return res.status(500).json({ status: "Error writing to file" });
