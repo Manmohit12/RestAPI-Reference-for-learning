@@ -57,20 +57,15 @@ app.post('/api/users', async (req, res) => {
       return res.status(400).json({ msg: "Request body is empty" });
    }
 
-   // Extract and normalize fields
    const {
       first_name,
       email,
       last_name,
       gender,
       job_title,
-      Job_title  // Handle case variation
    } = req.body;
 
-   // Normalize email to lowercase
-   const normalizedEmail = email?.toLowerCase().trim();
-
-   if (!first_name || !normalizedEmail) {
+   if (!first_name || !email) {
       return res.status(400).json({ msg: "First name and email are required" });
    }
 
@@ -78,9 +73,9 @@ app.post('/api/users', async (req, res) => {
       const result = await User.create({
          first_name: first_name.trim(),
          last_name: last_name?.trim() || '',
-         email: normalizedEmail,  // Use normalized email
+         email: email.toLowerCase().trim(),  // Normalize directly here
          gender: gender?.trim() || '',
-         job_title: (job_title || Job_title)?.trim() || ''
+         job_title: job_title?.trim() || ''
       });
 
       return res.status(201).json({ msg: "Success", id: result._id });
@@ -88,13 +83,11 @@ app.post('/api/users', async (req, res) => {
       console.error("User creation error:", error);
 
       if (error.code === 11000) {
-         // More specific error message
          return res.status(400).json({
-            msg: `Email '${normalizedEmail}' already exists`
+            msg: `Email '${email.toLowerCase().trim()}' already exists`
          });
       }
 
-      // Handle validation errors
       if (error.name === 'ValidationError') {
          return res.status(400).json({
             msg: Object.values(error.errors).map(e => e.message).join(', ')
