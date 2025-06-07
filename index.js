@@ -26,7 +26,7 @@ app.use('log.txt', logReqRes);
 
 // Routes
 app.use('/api/users',userRouter)
-app.use('/',userRouter)
+
 
 
 
