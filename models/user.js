@@ -3,34 +3,24 @@ import mongoose from 'mongoose';
 
 
 const userSchema = new mongoose.Schema({
-    first_name: {
-      type: String,
-      required: true,
-   },
-   last_name: {
-      type: String,
-    },
+   first_name: { type: String, required: true },
+   last_name: String,
    email: {
       type: String,
       required: true,
       unique: true,
-      lowercase: true,  // Ensures consistent casing
-      trim: true       // Automatically trims whitespace
-    },
-   job_title: {
-      type: String,
+      lowercase: true, // Automatically convert to lowercase
+      trim: true       // Automatically trim whitespace
    },
-   gender: {
-      type: String,
-    },
-},
-   { timestamps: true }
-);
+   gender: String,
+   job_title: String
+}, { timestamps: true });
+ 
 
 // Model
 const User = mongoose.model('User', userSchema);
 
-export  default 'User'
+export default User
 
 // Mongoose is an ODM(Object Data Modeling) library for Node.js & MongoDB that helps:
 

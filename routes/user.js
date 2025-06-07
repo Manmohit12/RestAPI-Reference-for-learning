@@ -6,7 +6,7 @@ import { handleGetAllUsers, handleGetUserById, handleUpdateUserById, handleDelet
 // GET ROUTE & POST 
 router.route('/')
     .get(handleGetAllUsers)
-    .post(handleCreateNewUser)
+    .post(handleCreateNewUser);
 
 //Three ROUTE
 router.route('/:id')
@@ -14,7 +14,6 @@ router.route('/:id')
     .patch(handleUpdateUserById)
     .delete(handleDeleteUserById);
     
-
 
 
 

@@ -42,51 +42,33 @@ async function handleDeleteUserById(req,res){
         res.status(500).json({ msg: "Deletion failed" });
     }
 }
-async function handleCreateNewUser(req, res){
-    if (!req.body || Object.keys(req.body).length === 0) {
-        return res.status(400).json({ msg: "Request body is empty" });
-    }
-
-    const {
-        first_name,
-        email,
-        last_name,
-        gender,
-        job_title,
-    } = req.body;
-
-    if (!first_name || !email) {
-        return res.status(400).json({ msg: "First name and email are required" });
-    }
-
+async function handleCreateNewUser(req, res) {
     try {
-        const result = await User.create({
-            first_name: first_name.trim(),
-            last_name: last_name?.trim() || '',
-            email: email.toLowerCase().trim(),  // Normalize directly here
-            gender: gender?.trim() || '',
-            job_title: job_title?.trim() || ''
+        const { email } = req.body;
+        const cleanEmail = email.toLowerCase().trim();
+
+        // Simple check
+        const exists = await User.findOne({ email: cleanEmail });
+        if (exists) {
+            console.log("Duplicate found:", exists.email);
+            return res.status(400).json({ error: "Email exists" });
+        }
+
+        // Create user
+        const user = await User.create({
+            ...req.body,
+            email: cleanEmail  // Save cleaned email
         });
+        return res.status(201).json({
+            message: "User created successfully",
+            id: user._id
+          });
 
-        return res.status(201).json({ msg: "Success", id: result._id });
     } catch (error) {
-        console.error("User creation error:", error);
-
-        if (error.code === 11000) {
-            return res.status(400).json({
-                msg: `Email '${email.toLowerCase().trim()}' already exists`
-            });
-        }
-
-        if (error.name === 'ValidationError') {
-            return res.status(400).json({
-                msg: Object.values(error.errors).map(e => e.message).join(', ')
-            });
-        }
-
-        return res.status(500).json({ msg: "Database insertion failed" });
+        console.log("Full error:", error);
+        return res.status(500).json({ error: "Server error" });
     }
-}
+  }
 
 
 export {
